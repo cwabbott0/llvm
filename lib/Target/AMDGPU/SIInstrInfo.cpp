@@ -1145,6 +1145,12 @@ bool SIInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     MI.eraseFromParent();
     break;
   }
+  case AMDGPU::EXIT_WWM: {
+    // This only gets its own opcode so that SIFixWWMLiveness can tell when WWM
+    // is exited.
+    MI.setDesc(get(AMDGPU::S_MOV_B64));
+    break;
+  }
   }
   return true;
 }
@@ -2654,6 +2660,7 @@ unsigned SIInstrInfo::getVALUOp(const MachineInstr &MI) {
   case AMDGPU::PHI: return AMDGPU::PHI;
   case AMDGPU::INSERT_SUBREG: return AMDGPU::INSERT_SUBREG;
   case AMDGPU::WQM: return AMDGPU::WQM;
+  case AMDGPU::WWM: return AMDGPU::WWM;
   case AMDGPU::S_MOV_B32:
     return MI.getOperand(1).isReg() ?
            AMDGPU::COPY : AMDGPU::V_MOV_B32_e32;
@@ -3959,6 +3966,7 @@ const TargetRegisterClass *SIInstrInfo::getDestEquivalentVGPRClass(
   case AMDGPU::REG_SEQUENCE:
   case AMDGPU::INSERT_SUBREG:
   case AMDGPU::WQM:
+  case AMDGPU::WWM:
     if (RI.hasVGPRs(NewDstRC))
       return nullptr;
 

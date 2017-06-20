@@ -80,6 +80,7 @@ add_llvm_target(AMDGPUCodeGen
   SIFixControlFlowLiveIntervals.cpp
   SIFixSGPRCopies.cpp
   SIFixVGPRCopies.cpp
+  SIFixWWMLiveness.cpp
   SIFoldOperands.cpp
   SIFrameLowering.cpp
   SIInsertSkips.cpp
