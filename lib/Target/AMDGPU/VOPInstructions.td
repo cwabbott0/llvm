@@ -130,15 +130,10 @@ class VOP3_Real <VOP3_Pseudo ps, int EncodingFamily> :
   let isCodeGenOnly = 0;
   let UseNamedOperandTable = 1;
 
-  let Constraints     = ps.Constraints;
-  let DisableEncoding = ps.DisableEncoding;
-
   // copy relevant pseudo op flags
   let SubtargetPredicate = ps.SubtargetPredicate;
   let AsmMatchConverter  = ps.AsmMatchConverter;
   let AsmVariantName     = ps.AsmVariantName;
-  let Constraints        = ps.Constraints;
-  let DisableEncoding    = ps.DisableEncoding;
   let TSFlags            = ps.TSFlags;
   let UseNamedOperandTable = ps.UseNamedOperandTable;
   let Uses                 = ps.Uses;
@@ -398,9 +393,6 @@ class VOP_SDWA_Real <VOP_SDWA_Pseudo ps> :
   let SchedRW = ps.SchedRW;
   let hasSideEffects = ps.hasSideEffects;
 
-  let Constraints     = ps.Constraints;
-  let DisableEncoding = ps.DisableEncoding;
-
   // Copy relevant pseudo op flags
   let SubtargetPredicate   = ps.SubtargetPredicate;
   let AssemblerPredicate   = ps.AssemblerPredicate;
@@ -408,8 +400,6 @@ class VOP_SDWA_Real <VOP_SDWA_Pseudo ps> :
   let AsmVariantName       = ps.AsmVariantName;
   let UseNamedOperandTable = ps.UseNamedOperandTable;
   let DecoderNamespace     = ps.DecoderNamespace;
-  let Constraints          = ps.Constraints;
-  let DisableEncoding      = ps.DisableEncoding;
   let TSFlags              = ps.TSFlags;
 }
 
@@ -425,9 +415,6 @@ class VOP_SDWA9_Real <VOP_SDWA_Pseudo ps> :
   let SchedRW = ps.SchedRW;
   let hasSideEffects = ps.hasSideEffects;
 
-  let Constraints     = ps.Constraints;
-  let DisableEncoding = ps.DisableEncoding;
-
   let SubtargetPredicate = !if(ps.Pfl.HasSDWA9, HasSDWA9, DisableInst);
   let AssemblerPredicate = !if(ps.Pfl.HasSDWA9, HasSDWA9, DisableInst);
   let AsmVariantName = !if(ps.Pfl.HasSDWA9, AMDGPUAsmVariants.SDWA9,
@@ -437,8 +424,6 @@ class VOP_SDWA9_Real <VOP_SDWA_Pseudo ps> :
   // Copy relevant pseudo op flags
   let AsmMatchConverter    = ps.AsmMatchConverter;
   let UseNamedOperandTable = ps.UseNamedOperandTable;
-  let Constraints          = ps.Constraints;
-  let DisableEncoding      = ps.DisableEncoding;
   let TSFlags              = ps.TSFlags;
 }
 

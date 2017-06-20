@@ -508,8 +508,6 @@ class SOPK_Real<bits<5> op, SOPK_Pseudo ps> :
   // copy relevant pseudo op flags
   let SubtargetPredicate = ps.SubtargetPredicate;
   let AsmMatchConverter  = ps.AsmMatchConverter;
-  let DisableEncoding    = ps.DisableEncoding;
-  let Constraints        = ps.Constraints;
 
   // encoding
   bits<7>  sdst;
