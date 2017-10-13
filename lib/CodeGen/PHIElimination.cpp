@@ -285,26 +285,15 @@ void PHIElimination::LowerPHINode(MachineBasicBlock &MBB,
     MachineInstr &PHICopy = *std::prev(AfterPHIsIt);
 
     if (IncomingReg) {
-      LiveVariables::VarInfo &VI = LV->getVarInfo(IncomingReg);
-
       // Increment use count of the newly created virtual register.
       LV->setPHIJoin(IncomingReg);
-
-      // When we are reusing the incoming register, it may already have been
-      // killed in this block. The old kill will also have been inserted at
-      // AfterPHIsIt, so it appears before the current PHICopy.
-      if (reusedIncoming)
-        if (MachineInstr *OldKill = VI.findKill(&MBB)) {
-          DEBUG(dbgs() << "Remove old kill from " << *OldKill);
-          LV->removeVirtualRegisterKilled(IncomingReg, *OldKill);
-          DEBUG(MBB.dump());
-        }
 
       // Add information to LiveVariables to know that the incoming value is
       // killed.  Note that because the value is defined in several places (once
       // each for each incoming block), the "def" block and instruction fields
       // for the VarInfo is not filled in.
-      LV->addVirtualRegisterKilled(IncomingReg, PHICopy);
+      if (!reusedIncoming)
+        LV->addVirtualRegisterKilled(IncomingReg, PHICopy);
     }
 
     // Since we are going to be deleting the PHI node, if it is the last use of
