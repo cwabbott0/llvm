@@ -108,6 +108,7 @@ public:
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     // Should preserve the same set that TwoAddressInstructions does.
+    AU.addRequired<LiveIntervals>();
     AU.addPreserved<SlotIndexes>();
     AU.addPreserved<LiveIntervals>();
     AU.addPreservedID(LiveVariablesID);
