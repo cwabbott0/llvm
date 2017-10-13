@@ -819,7 +819,7 @@ void GCNPassConfig::addFastRegAlloc(FunctionPass *RegAllocPass) {
 
   // This must be run after SILowerControlFlow, since it needs to use the
   // machine-level CFG, but before register allocation.
-  insertPass(&SILowerControlFlowID, &SIFixWWMLivenessID, false);
+  insertPass(&TwoAddressInstructionPassID, &SIFixWWMLivenessID);
 
   TargetPassConfig::addFastRegAlloc(RegAllocPass);
 }
@@ -834,7 +834,7 @@ void GCNPassConfig::addOptimizedRegAlloc(FunctionPass *RegAllocPass) {
 
   // This must be run after SILowerControlFlow, since it needs to use the
   // machine-level CFG, but before register allocation.
-  insertPass(&SILowerControlFlowID, &SIFixWWMLivenessID, false);
+  insertPass(&RegisterCoalescerID, &SIFixWWMLivenessID);
 
   TargetPassConfig::addOptimizedRegAlloc(RegAllocPass);
 }
