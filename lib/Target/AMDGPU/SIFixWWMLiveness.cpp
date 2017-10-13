@@ -71,6 +71,7 @@ namespace {
 class SIFixWWMLiveness : public MachineFunctionPass {
 private:
   LiveIntervals *LIS = nullptr;
+  const SIInstrInfo *TII;
   const SIRegisterInfo *TRI;
   MachineRegisterInfo *MRI;
 
@@ -83,7 +84,7 @@ public:
 
   bool runOnMachineFunction(MachineFunction &MF) override;
 
-  bool runOnWWMInstruction(MachineInstr &MI);
+  bool runOnWWMRegion(MachineInstr &WWMStart, MachineInstr &WWMEnd);
 
   void addDefs(const MachineInstr &MI, SparseBitVector<> &set);
 
@@ -91,8 +92,9 @@ public:
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
     // Should preserve the same set that TwoAddressInstructions does.
-    AU.addPreserved<SlotIndexes>();
-    AU.addPreserved<LiveIntervals>();
+    AU.addRequired<LiveIntervals>();
+    //AU.addPreserved<SlotIndexes>();
+    //AU.addPreserved<LiveIntervals>();
     AU.addPreservedID(LiveVariablesID);
     AU.addPreservedID(MachineLoopInfoID);
     AU.addPreservedID(MachineDominatorsID);
@@ -117,7 +119,7 @@ FunctionPass *llvm::createSIFixWWMLivenessPass() {
 void SIFixWWMLiveness::addDefs(const MachineInstr &MI, SparseBitVector<> &Regs)
 {
   for (const MachineOperand &Op : MI.defs()) {
-    if (Op.isReg()) {
+    if (Op.isReg() && !Op.isDead()) {
       unsigned Reg = Op.getReg();
       if (TRI->isVGPR(*MRI, Reg))
         Regs.set(Reg);
@@ -125,14 +127,16 @@ void SIFixWWMLiveness::addDefs(const MachineInstr &MI, SparseBitVector<> &Regs)
   }
 }
 
-bool SIFixWWMLiveness::runOnWWMInstruction(MachineInstr &WWM) {
-  MachineBasicBlock *MBB = WWM.getParent();
+bool SIFixWWMLiveness::runOnWWMRegion(MachineInstr &WWMStart,
+                                      MachineInstr &WWMEnd) {
+  MachineBasicBlock *MBB = WWMStart.getParent();
+  assert(MBB == WWMEnd.getParent());
 
   // Compute the registers that are live out of MI by figuring out which defs
   // are reachable from MI.
   SparseBitVector<> LiveOut;
 
-  for (auto II = MachineBasicBlock::iterator(WWM), IE =
+  for (auto II = MachineBasicBlock::iterator(WWMEnd), IE =
        MBB->end(); II != IE; ++II) {
     addDefs(*II, LiveOut);
   }
@@ -148,7 +152,7 @@ bool SIFixWWMLiveness::runOnWWMInstruction(MachineInstr &WWM) {
   // Compute the registers that reach MI.
   SparseBitVector<> Reachable;
 
-  for (auto II = ++MachineBasicBlock::reverse_iterator(WWM), IE =
+  for (auto II = ++MachineBasicBlock::reverse_iterator(WWMStart), IE =
        MBB->rend(); II != IE; ++II) {
     addDefs(*II, Reachable);
   }
@@ -164,18 +168,47 @@ bool SIFixWWMLiveness::runOnWWMInstruction(MachineInstr &WWM) {
   // find the intersection, and add implicit uses.
   LiveOut &= Reachable;
 
+  SlotIndex WWMStartSlot = LIS->getInstructionIndex(WWMStart);
+  SlotIndex WWMEndSlot = LIS->getInstructionIndex(WWMEnd);
+
   bool Modified = false;
   for (unsigned Reg : LiveOut) {
-    WWM.addOperand(MachineOperand::CreateReg(Reg, false, /*isImp=*/true));
-    if (LIS) {
-      // FIXME: is there a better way to update the live interval?
-      LIS->removeInterval(Reg);
-      LIS->createAndComputeVirtRegInterval(Reg);
+    LiveInterval &LI = LIS->getInterval(Reg);
+
+    // If the register is already live at the end, don't bother.
+    if (LI.liveAt(WWMEndSlot))
+      continue;
+
+    WWMEnd.addOperand(MachineOperand::CreateReg(Reg, /*isDef=*/false,
+                                                /*isImp=*/true));
+
+    // If the live range doesn't already extend through the start, add an
+    // implicit def to keep it from extending any farther.
+    MachineInstr *Imp = NULL;
+    SlotIndex ImpSlot;
+    if (!LI.liveAt(WWMStartSlot)) {
+      MachineBasicBlock &Entry = MBB->getParent()->front();
+      Imp = BuildMI(Entry, Entry.getFirstNonPHI(), DebugLoc(),
+                    TII->get(AMDGPU::IMPLICIT_DEF), Reg);
+      ImpSlot = LIS->InsertMachineInstrInMaps(*Imp);
+      LI.createDeadDef(ImpSlot.getRegSlot(), LIS->getVNInfoAllocator());
     }
+
+    LIS->extendToIndices(LI, {WWMEndSlot.getRegSlot()});
+    if (Imp && !LI.liveAt(ImpSlot.getRegSlot().getNextSlot())) {
+      LIS->RemoveMachineInstrFromMaps(*Imp);
+      Imp->eraseFromParent();
+    }
+
     Modified = true;
   }
 
   return Modified;
+}
+
+static bool isWWMStart(MachineInstr &MI) {
+  return MI.getOpcode() == AMDGPU::S_OR_SAVEEXEC_B64 &&
+    MI.getOperand(1).isImm() && MI.getOperand(1).getImm() == -1;
 }
 
 bool SIFixWWMLiveness::runOnMachineFunction(MachineFunction &MF) {
@@ -185,15 +218,20 @@ bool SIFixWWMLiveness::runOnMachineFunction(MachineFunction &MF) {
   LIS = getAnalysisIfAvailable<LiveIntervals>();
 
   const SISubtarget &ST = MF.getSubtarget<SISubtarget>();
-  const SIInstrInfo *TII = ST.getInstrInfo();
-
+  TII = ST.getInstrInfo();
   TRI = &TII->getRegisterInfo();
   MRI = &MF.getRegInfo();
 
+  MachineInstr *WWMStart = NULL;
+
   for (MachineBasicBlock &MBB : MF) {
     for (MachineInstr &MI : MBB) {
-      if (MI.getOpcode() == AMDGPU::EXIT_WWM) {
-        Modified |= runOnWWMInstruction(MI);
+      if (isWWMStart(MI)) {
+        WWMStart = &MI;
+      } else if (MI.getOpcode() == AMDGPU::EXIT_WWM) {
+        assert(WWMStart);
+        Modified |= runOnWWMRegion(*WWMStart, MI);
+        WWMStart = NULL;
       }
     }
   }
