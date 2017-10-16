@@ -442,8 +442,11 @@ void SILowerControlFlow::combineMasks(MachineInstr &MI) {
   unsigned Reg = MI.getOperand(OpToReplace).getReg();
   MI.RemoveOperand(OpToReplace);
   MI.addOperand(Ops[UniqueOpndIdx]);
-  if (MRI->use_empty(Reg))
+  if (MRI->use_empty(Reg)) {
+    if (LIS)
+      LIS->RemoveMachineInstrFromMaps(*MRI->getUniqueVRegDef(Reg));
     MRI->getUniqueVRegDef(Reg)->eraseFromParent();
+  }
 }
 
 bool SILowerControlFlow::runOnMachineFunction(MachineFunction &MF) {
