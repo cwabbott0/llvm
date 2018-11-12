@@ -23,6 +23,7 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/SparseBitVector.h"
 #include "llvm/CodeGen/PseudoSourceValue.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
@@ -212,6 +213,13 @@ public:
 
     SGPRSpillVGPRCSR(unsigned V, Optional<int> F) : VGPR(V), FI(F) {}
   };
+
+public:
+  SparseBitVector<> WWMReservedRegs;
+
+  void ReserveWWMRegister(unsigned reg) {
+    WWMReservedRegs.set(reg);
+  }
 
 private:
   // SGPR->VGPR spilling support.

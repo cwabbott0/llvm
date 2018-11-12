@@ -52,6 +52,7 @@ FunctionPass *createSIDebuggerInsertNopsPass();
 FunctionPass *createSIInsertWaitcntsPass();
 FunctionPass *createSIFixWWMLivenessPass();
 FunctionPass *createSIFormMemoryClausesPass();
+FunctionPass *createSIPreAllocateWWMRegsPass();
 FunctionPass *createAMDGPUSimplifyLibCallsPass(const TargetOptions &);
 FunctionPass *createAMDGPUUseNativeCallsPass();
 FunctionPass *createAMDGPUCodeGenPreparePass();
@@ -142,6 +143,9 @@ extern char &SIOptimizeExecMaskingID;
 
 void initializeSIFixWWMLivenessPass(PassRegistry &);
 extern char &SIFixWWMLivenessID;
+
+void initializeSIPreAllocateWWMRegsPass(PassRegistry &);
+extern char &SIPreAllocateWWMRegsID;
 
 void initializeAMDGPUSimplifyLibCallsPass(PassRegistry &);
 extern char &AMDGPUSimplifyLibCallsID;

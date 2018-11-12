@@ -190,6 +190,7 @@ extern "C" void LLVMInitializeAMDGPUTarget() {
   initializeSIOptimizeExecMaskingPass(*PR);
   initializeSIFixWWMLivenessPass(*PR);
   initializeSIFormMemoryClausesPass(*PR);
+  initializeSIPreAllocateWWMRegsPass(*PR);
   initializeAMDGPUUnifyDivergentExitNodesPass(*PR);
   initializeAMDGPUAAWrapperPassPass(*PR);
   initializeAMDGPUExternalAAWrapperPass(*PR);
@@ -841,6 +842,7 @@ void GCNPassConfig::addPreRegAlloc() {
     addPass(createAMDGPUMachineCFGStructurizerPass());
   }
   addPass(createSIWholeQuadModePass());
+  //addPass(createSIPreAllocateWWMRegsPass());
 }
 
 void GCNPassConfig::addFastRegAlloc(FunctionPass *RegAllocPass) {
@@ -854,7 +856,8 @@ void GCNPassConfig::addFastRegAlloc(FunctionPass *RegAllocPass) {
 
   // This must be run after SILowerControlFlow, since it needs to use the
   // machine-level CFG, but before register allocation.
-  insertPass(&SILowerControlFlowID, &SIFixWWMLivenessID, false);
+  //insertPass(&TwoAddressInstructionPassID, &SIFixWWMLivenessID, false);
+  insertPass(&TwoAddressInstructionPassID, &SIPreAllocateWWMRegsID, false);
 
   TargetPassConfig::addFastRegAlloc(RegAllocPass);
 }
@@ -871,7 +874,8 @@ void GCNPassConfig::addOptimizedRegAlloc(FunctionPass *RegAllocPass) {
 
   // This must be run after SILowerControlFlow, since it needs to use the
   // machine-level CFG, but before register allocation.
-  insertPass(&SILowerControlFlowID, &SIFixWWMLivenessID, false);
+  //insertPass(&MachineSchedulerID, &SIFixWWMLivenessID, false);
+  insertPass(&MachineSchedulerID, &SIPreAllocateWWMRegsID, false);
 
   TargetPassConfig::addOptimizedRegAlloc(RegAllocPass);
 }
