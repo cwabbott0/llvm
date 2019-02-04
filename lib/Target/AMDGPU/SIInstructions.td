@@ -141,6 +141,13 @@ def V_SET_INACTIVE_B64 : VPseudoInstSI <(outs VReg_64:$vdst),
   let Constraints = "$src = $vdst";
 }
 
+// Pseudoinstruction for @llvm.amdgcn.inverse.ballot. It is turned into
+// potentially a readlane and then a copy.
+def S_INV_BALLOT : SPseudoInstSI <(outs VReg_1:$dst), (ins SReg_64:$src),
+  [(set i1:$dst, (int_amdgcn_inverse_ballot i64:$src))]> {
+  let usesCustomInserter = 1;
+}
+
 
 let usesCustomInserter = 1, Defs = [SCC] in {
 def S_ADD_U64_PSEUDO : SPseudoInstSI <

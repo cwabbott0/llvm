@@ -3496,6 +3496,9 @@ MachineBasicBlock *SITargetLowering::EmitInstrWithCustomInserter(
     MI.eraseFromParent();
     return BB;
   }
+  case AMDGPU::S_INV_BALLOT:
+    MI.setDesc(TII->get(AMDGPU::COPY));
+    return BB;
   default:
     return AMDGPUTargetLowering::EmitInstrWithCustomInserter(MI, BB);
   }

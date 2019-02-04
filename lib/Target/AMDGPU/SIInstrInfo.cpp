@@ -3980,6 +3980,14 @@ void SIInstrInfo::legalizeOperands(MachineInstr &MI,
     return;
   }
 
+  // Legalize S_INV_BALLOT
+  if (MI.getOpcode() == AMDGPU::S_INV_BALLOT) {
+    MachineOperand &Src = MI.getOperand(1);
+    if (Src.isReg() && RI.hasVGPRs(MRI.getRegClass(Src.getReg())))
+      Src.setReg(readlaneVGPRToSGPR(Src.getReg(), MI, MRI));
+    return;
+  }
+
   // Legalize MIMG and MUBUF/MTBUF for shaders.
   //
   // Shaders only generate MUBUF/MTBUF instructions via intrinsics or via

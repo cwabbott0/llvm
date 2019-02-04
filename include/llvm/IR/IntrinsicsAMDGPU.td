@@ -1282,6 +1282,9 @@ def int_amdgcn_fcmp :
   Intrinsic<[llvm_i64_ty], [llvm_anyfloat_ty, LLVMMatchType<0>, llvm_i32_ty],
             [IntrNoMem, IntrConvergent]>;
 
+def int_amdgcn_inverse_ballot :
+  Intrinsic<[llvm_i1_ty], [llvm_i64_ty], [IntrNoMem, IntrSpeculatable]>;
+
 def int_amdgcn_readfirstlane :
   GCCBuiltin<"__builtin_amdgcn_readfirstlane">,
   Intrinsic<[llvm_i32_ty], [llvm_i32_ty], [IntrNoMem, IntrConvergent]>;
