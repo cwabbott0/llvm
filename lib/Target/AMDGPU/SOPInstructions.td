@@ -145,9 +145,7 @@ let Defs = [SCC] in {
     [(set i64:$sdst, (not i64:$src0))]
   >;
   def S_WQM_B32 : SOP1_32 <"s_wqm_b32">;
-  def S_WQM_B64 : SOP1_64 <"s_wqm_b64",
-    [(set i1:$sdst, (int_amdgcn_wqm_vote i1:$src0))]
-  >;
+  def S_WQM_B64 : SOP1_64 <"s_wqm_b64">;
 } // End Defs = [SCC]
 
 
@@ -1032,6 +1030,15 @@ def : GCNPat <
   (int_amdgcn_s_getreg imm:$simm16),
   (S_GETREG_B32 (as_i16imm $simm16))
 >;
+
+//===----------------------------------------------------------------------===//
+// WQM Intrinsic Pattern.
+//===----------------------------------------------------------------------===//
+def : GCNPat<
+  (i1 (int_amdgcn_wqm_vote i1:$src0)),
+  (S_WQM_B64 (S_AND_B64 $src0, (i64 EXEC)))
+>;
+
 
 //===----------------------------------------------------------------------===//
 // SOP1 Patterns
